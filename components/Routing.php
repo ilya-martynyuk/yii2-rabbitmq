@@ -27,13 +27,17 @@ class Routing
      * @var $conn AMQPChannel
      */
     private $ch;
-
+    /**
+     * @var string
+     */
+    private $connectionName;
     /**
      * @param AbstractConnection $conn
      */
-    public function __construct(AbstractConnection $conn)
+    public function __construct(AbstractConnection $conn, string $connectionName)
     {
         $this->conn = $conn;
+        $this->connectionName = $connectionName;
     }
 
     /**
@@ -189,6 +193,7 @@ class Routing
         if(!isset($this->exchanges[$exchangeName])) {
             throw new RuntimeException("Exchange `{$exchangeName}` is not configured.");
         }
+
         $exchange = $this->exchanges[$exchangeName];
         if (!isset($this->exchangesDeclared[$exchangeName])) {
             $this->getChannel()->exchange_declare(

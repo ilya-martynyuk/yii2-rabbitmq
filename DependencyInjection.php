@@ -66,10 +66,15 @@ class DependencyInjection implements BootstrapInterface
     protected function registerRouting(Configuration $config)
     {
         \Yii::$container->setSingleton(Configuration::ROUTING_SERVICE_NAME, function ($container, $params) use ($config) {
-            $routing = new Routing($params['conn']);
-            \Yii::$container->invoke([$routing, 'setQueues'], [$config->queues]);
-            \Yii::$container->invoke([$routing, 'setExchanges'], [$config->exchanges]);
-            \Yii::$container->invoke([$routing, 'setBindings'], [$config->bindings]);
+            $routing = new Routing($params['conn'], $params['connectionName']);
+
+            $connectionQueues = $this->filterElementsByConnection($config->queues, $params['connectionName']);
+            $connectionExchanges = $this->filterElementsByConnection($config->exchanges, $params['connectionName']);
+            $connectionBindings = $this->filterElementsByConnection($config->bindings, $params['connectionName']);
+
+            \Yii::$container->invoke([$routing, 'setQueues'], [$connectionQueues]);
+            \Yii::$container->invoke([$routing, 'setExchanges'], [$connectionExchanges]);
+            \Yii::$container->invoke([$routing, 'setBindings'], [$connectionBindings]);
 
             return $routing;
         });
@@ -92,7 +97,10 @@ class DependencyInjection implements BootstrapInterface
                 /**
                  * @var $routing Routing
                  */
-                $routing = \Yii::$container->get(Configuration::ROUTING_SERVICE_NAME, ['conn' => $connection]);
+                $routing = \Yii::$container->get(Configuration::ROUTING_SERVICE_NAME, [
+                    'conn' => $connection,
+                    'connectionName' => $options['connection']
+                ]);
                 /**
                  * @var $logger Logger
                  */
@@ -126,7 +134,11 @@ class DependencyInjection implements BootstrapInterface
                 /**
                  * @var $routing Routing
                  */
-                $routing = \Yii::$container->get(Configuration::ROUTING_SERVICE_NAME, ['conn' => $connection]);
+                $routing = \Yii::$container->get(Configuration::ROUTING_SERVICE_NAME, [
+                    'conn' => $connection,
+                    'connectionName' => $options['connection']
+                ]);
+
                 /**
                  * @var $logger Logger
                  */
@@ -179,5 +191,23 @@ class DependencyInjection implements BootstrapInterface
 	    if($app instanceof \yii\console\Application) {
 		    $app->controllerMap[Configuration::EXTENSION_CONTROLLER_ALIAS] = RabbitMQController::class;
 	    }
+    }
+
+    /**
+     * Filters passed elements by connection name
+     *
+     * @param array $elements
+     * @param string $connectionName
+     * @return array
+     */
+    private function filterElementsByConnection(
+        array $elements,
+        string $connectionName,
+        string $connectionKey = 'connection'
+    ): array
+    {
+        return array_filter($elements, function ($element) use ($connectionName, $connectionKey) {
+            return $element[$connectionKey] === $connectionName;
+        });
     }
 }

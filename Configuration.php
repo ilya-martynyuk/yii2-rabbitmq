@@ -60,6 +60,7 @@ class Configuration extends Component
                 'arguments' => null,
                 'ticket' => null,
                 'declare' => true,
+                'connection' => self::DEFAULT_CONNECTION_NAME,
             ],
         ],
         'queues' => [
@@ -73,6 +74,7 @@ class Configuration extends Component
                 'arguments' => null,
                 'ticket' => null,
                 'declare' => true,
+                'connection' => self::DEFAULT_CONNECTION_NAME,
             ],
         ],
         'bindings' => [
@@ -81,6 +83,7 @@ class Configuration extends Component
                 'queue' => null,
                 'to_exchange' => null,
                 'routing_keys' => [],
+                'connection' => self::DEFAULT_CONNECTION_NAME,
             ],
         ],
         'producers' => [
@@ -196,9 +199,12 @@ class Configuration extends Component
      * @throws NotInstantiableException
      * @throws \yii\base\InvalidConfigException
      */
-    public function getRouting(AbstractConnection $connection)
+    public function getRouting(AbstractConnection $connection, string $connectionName)
     {
-        return Yii::$container->get(Configuration::ROUTING_SERVICE_NAME, ['conn' => $connection]);
+        return Yii::$container->get(Configuration::ROUTING_SERVICE_NAME, [
+            'conn' => $connection,
+            'connectionName' => $connectionName
+        ]);
     }
 
     /**
@@ -318,6 +324,12 @@ class Configuration extends Component
             }
             if (isset($binding['queue']) && !$this->isNameExist($this->queues, $binding['queue'])) {
                 throw new InvalidConfigException("`{$binding['queue']}` defined in binding doesn't configured in queues.");
+            }
+            if (isset($consumer['connection']) && !$this->isNameExist($this->connections, $consumer['connection'])) {
+                throw new InvalidConfigException("Connection `{$consumer['connection']}` defined in binding doesn't configured in connections.");
+            }
+            if (!isset($consumer['connection']) && !$this->isNameExist($this->connections, self::DEFAULT_CONNECTION_NAME)) {
+                throw new InvalidConfigException("Connection for binding `{$consumer['name']}` is required.");
             }
         }
         foreach ($this->producers as $producer) {

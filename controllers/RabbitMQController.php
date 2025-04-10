@@ -364,7 +364,7 @@ class RabbitMQController extends Controller
     private function getRouting(string $connectionName)
     {
         $conn = $this->rabbitmq->getConnection($connectionName);
-        return $this->rabbitmq->getRouting($conn);
+        return $this->rabbitmq->getRouting($conn, $connectionName);
     }
 
     /**
